@@ -25,7 +25,7 @@
                             "address": "0x462591cc23A9fB4e508006A556474db04b0e4116"
                         },
                         "amount": {
-                            "value": "5156250000000000000",
+                            "value": "0",
                             "currency": {
                                 "symbol": "ETH",
                                 "decimals": 18
@@ -42,7 +42,7 @@
                             "address": "0xa24D28D30ee9711149241510Ce66e8791a8043FA"
                         },
                         "amount": {
-                            "value": "3750000000000000000",
+                            "value": "0",
                             "currency": {
                                 "symbol": "ETH",
                                 "decimals": 18
