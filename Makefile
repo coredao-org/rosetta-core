@@ -1,7 +1,8 @@
-.PHONY: deps build run lint run-mainnet-online run-mainnet-offline run-testnet-online \
+.PHONY: deps lint run-mainnet-online run-mainnet-offline run-testnet-online \
 	run-testnet-offline check-comments add-license check-license shorten-lines \
-	spellcheck salus build-local format check-format update-tracer test coverage coverage-local \
-	update-bootstrap-balances mocks
+	spellcheck salus format check-format update-tracer test coverage coverage-local \
+	update-bootstrap-balances mocks build-testnet build-mainnet build-testnet-local \
+	build-mainnet-local build-testnet-release build-mainnet-release run-mainnet-remote run-testnet-remote
 
 ADDLICENSE_IGNORE=-ignore ".github/**/*" -ignore ".idea/**/*"
 ADDLICENSE_INSTALL=go install github.com/google/addlicense@latest
@@ -10,7 +11,7 @@ ADDLICENCE_SCRIPT=${ADDLICENSE_CMD} -c "Coinbase, Inc." -l "apache" -v ${ADDLICE
 SPELLCHECK_CMD=go run github.com/client9/misspell/cmd/misspell
 GOLINES_INSTALL=go install github.com/segmentio/golines@latest
 GOLINES_CMD=golines
-GOLINT_INSTALL=go get golang.org/x/lint/golint
+GOLINT_INSTALL=go install golang.org/x/lint/golint
 GOLINT_CMD=golint
 GOVERALLS_INSTALL=go install github.com/mattn/goveralls@latest
 GOVERALLS_CMD=goveralls
@@ -22,22 +23,39 @@ LINT_SETTINGS=golint,misspell,gocyclo,gocritic,whitespace,goconst,gocognit,bodyc
 PWD=$(shell pwd)
 NOFILE=100000
 
+PLATFORM_FLAG :=
+DOCKER_API_VERSION := $(shell docker version --format '{{.Server.APIVersion}}')
+ifeq ($(shell expr $(DOCKER_API_VERSION) \>= 1.41), 1)
+	PLATFORM_FLAG := --platform linux/amd64
+endif
+
 deps:
 	go get ./...
 
 test:
 	${TEST_SCRIPT}
 
-build:
-	docker build -t rosetta-ethereum:latest https://github.com/coinbase/rosetta-ethereum.git
+build-testnet:
+	docker build ${PLATFORM_FLAG} -t rosetta-core:testnet-latest -f Dockerfile.testnet https://github.com/coredao-org/rosetta-core.git
 
-build-local:
-	docker build -t rosetta-ethereum:latest .
+build-mainnet:
+	docker build ${PLATFORM_FLAG} -t rosetta-core:mainnet-latest -f Dockerfile.mainnet https://github.com/coredao-org/rosetta-core.git
 
-build-release:
+build-testnet-local:
+	docker build ${PLATFORM_FLAG} -t rosetta-core:testnet-latest -f Dockerfile.testnet .
+
+build-mainnet-local:
+	docker build ${PLATFORM_FLAG} -t rosetta-core:mainnet-latest -f Dockerfile.mainnet .
+
+build-testnet-release:
 	# make sure to always set version with vX.X.X
-	docker build -t rosetta-ethereum:$(version) .;
-	docker save rosetta-ethereum:$(version) | gzip > rosetta-ethereum-$(version).tar.gz;
+	docker build ${PLATFORM_FLAG} -t rosetta-core:testnet-$(version) -f Dockerfile.testnet .;
+	docker save rosetta-core:testnet-$(version) | gzip > rosetta-core-testnet-$(version).tar.gz;
+
+build-mainnet-release:
+	# make sure to always set version with vX.X.X
+	docker build ${PLATFORM_FLAG} -t rosetta-core:mainnet-$(version) -f Dockerfile.mainnet .;
+	docker save rosetta-core:mainnet-$(version) | gzip > rosetta-core-mainnet-$(version).tar.gz;
 
 update-tracer:
 	curl https://raw.githubusercontent.com/ethereum/go-ethereum/master/eth/tracers/js/internal/tracers/call_tracer_js.js -o ethereum/call_tracer.js
@@ -45,24 +63,25 @@ update-tracer:
 update-bootstrap-balances:
 	go run main.go utils:generate-bootstrap ethereum/genesis_files/mainnet.json rosetta-cli-conf/mainnet/bootstrap_balances.json;
 	go run main.go utils:generate-bootstrap ethereum/genesis_files/testnet.json rosetta-cli-conf/testnet/bootstrap_balances.json;
+	go run main.go utils:generate-bootstrap ethereum/genesis_files/devnet.json rosetta-cli-conf/devnet/bootstrap_balances.json;
 
 run-mainnet-online:
-	docker run -d --rm --ulimit "nofile=${NOFILE}:${NOFILE}" -v "${PWD}/ethereum-data:/data" -e "MODE=ONLINE" -e "NETWORK=MAINNET" -e "PORT=8080" -p 8080:8080 -p 30303:30303 rosetta-ethereum:latest
+	docker run -d --rm ${PLATFORM_FLAG} --ulimit "nofile=${NOFILE}:${NOFILE}" -v "${PWD}/core-mainnet-data:/data" -e "MODE=ONLINE" -e "NETWORK=CORE" -e "PORT=8080" -p 8080:8080 -p 35021:35021 -p 8579:8579 rosetta-core:mainnet-latest
 
 run-mainnet-offline:
-	docker run -d --rm -e "MODE=OFFLINE" -e "NETWORK=MAINNET" -e "PORT=8081" -p 8081:8081 rosetta-ethereum:latest
+	docker run -d --rm ${PLATFORM_FLAG} -e "MODE=OFFLINE" -e "NETWORK=CORE" -e "PORT=8081" -p 8081:8081 rosetta-core:mainnet-latest
 
 run-testnet-online:
-	docker run -d --rm --ulimit "nofile=${NOFILE}:${NOFILE}" -v "${PWD}/ethereum-data:/data" -e "MODE=ONLINE" -e "NETWORK=TESTNET" -e "PORT=8080" -p 8080:8080 -p 30303:30303 -p 8545:8545 rosetta-ethereum:latest
+	docker run -d --rm ${PLATFORM_FLAG} --ulimit "nofile=${NOFILE}:${NOFILE}" -v "${PWD}/core-testnet-data:/data" -e "MODE=ONLINE" -e "NETWORK=BUFFALO" -e "PORT=8080" -p 8080:8080 -p 35012:35012 -p 8575:8575 rosetta-core:testnet-latest
 
 run-testnet-offline:
-	docker run -d --rm -e "MODE=OFFLINE" -e "NETWORK=TESTNET" -e "PORT=8081" -p 8081:8081 rosetta-ethereum:latest
+	docker run -d --rm ${PLATFORM_FLAG} -e "MODE=OFFLINE" -e "NETWORK=BUFFALO" -e "PORT=8081" -p 8081:8081 rosetta-core:testnet-latest
 
 run-mainnet-remote:
-	docker run -d --rm --ulimit "nofile=${NOFILE}:${NOFILE}" -e "MODE=ONLINE" -e "NETWORK=MAINNET" -e "PORT=8080" -e "GETH=$(geth)" -p 8080:8080 -p 30303:30303 rosetta-ethereum:latest
+	docker run -d --rm ${PLATFORM_FLAG} --ulimit "nofile=${NOFILE}:${NOFILE}" -e "MODE=ONLINE" -e "NETWORK=CORE" -e "PORT=8080" -e "GETH=$(geth)" -p 8080:8080  rosetta-core:mainnet-latest
 
 run-testnet-remote:
-	docker run -d --rm --ulimit "nofile=${NOFILE}:${NOFILE}" -e "MODE=ONLINE" -e "NETWORK=TESTNET" -e "PORT=8080" -e "GETH=$(geth)" -p 8080:8080 -p 30303:30303 rosetta-ethereum:latest
+	docker run -d --rm ${PLATFORM_FLAG} --ulimit "nofile=${NOFILE}:${NOFILE}" -e "MODE=ONLINE" -e "NETWORK=BUFFALO" -e "PORT=8080" -e "GETH=$(geth)" -p 8080:8080  rosetta-core:testnet-latest
 
 check-comments:
 	${GOLINT_INSTALL}

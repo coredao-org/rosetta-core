@@ -29,7 +29,7 @@ import (
 
 const (
 	gethLogger       = "geth"
-	gethStdErrLogger = "geth err"
+	gethStdErrLogger = "geth cmd"
 )
 
 // logPipe prints out logs from geth. We don't end when context

@@ -30,7 +30,7 @@ request_funds(1){
 
 create_account(1){
   create{
-    network = {"network":"Buffalo", "blockchain":"Corechain"};
+    network = {"network":"Dev", "blockchain":"Corechain"};
     key = generate_key({"curve_type": "secp256k1"});
     account = derive({
       "network_identifier": {{network}},
@@ -48,7 +48,7 @@ create_account(1){
 // define workflow: transfer
 transfer(8){
   transfer{
-    transfer.network = {"network":"Buffalo", "blockchain":"Corechain"};
+    transfer.network = {"network":"Dev", "blockchain":"Corechain"};
     currency = {"symbol":"CORE", "decimals":18};
     sender = find_balance({
       "minimum_balance":{
@@ -58,7 +58,7 @@ transfer(8){
     });
 
     // Set the recipient_amount as some value <= sender.balance-max_fee
-    max_fee = "700000000000000";
+    max_fee = "630000000000000";
     available_amount = {{sender.balance.value}} - {{max_fee}};
     recipient_amount = random_number({"minimum": "1", "maximum": {{available_amount}}});
     print_message({"recipient_amount":{{recipient_amount}}});
@@ -105,10 +105,10 @@ transfer(8){
 return_funds(8){
   // TODO: add suggested fee dry run to ensure account fully cleared
   transfer{
-    transfer.network = {"network":"Buffalo", "blockchain":"Corechain"};
+    transfer.network = {"network":"Dev", "blockchain":"Corechain"};
     currency = {"symbol":"CORE", "decimals":18};
-    // min fee: gasPrice * gas = 30000000000 * 21000
-    max_fee = "700000000000000";
+    // gasPrice * gas = 30000000000 * 21000
+    max_fee = "630000000000000";
     sender = find_balance({
       "minimum_balance":{
         "value": {{max_fee}},
@@ -124,7 +124,7 @@ return_funds(8){
 
     // TODO: replace by your faucet account
     // Provide a static address as the recipient and construct operations
-    faucet = {"address":"0xf13F4E007eB5C8e8201AdE0bE1C8946592818F42"};
+    faucet = {"address":"0x57ee5B589CC477d1794736aABc0092dC85c6C495"};
     transfer.confirmation_depth = "1";
     transfer.operations = [
       {

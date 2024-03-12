@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strings"
 
 	"github.com/coinbase/rosetta-sdk-go/storage/modules"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -53,11 +54,18 @@ func GenerateBootstrapFile(genesisFile string, outputFile string) error {
 	}
 	sort.Strings(keys)
 
+	var bal *big.Int
+	var ok bool
 	// Write to file
 	balances := []*modules.BootstrapBalance{}
 	for _, k := range keys {
 		v := formattedAllocations[k]
-		bal, ok := new(big.Int).SetString(v[2:], 16)
+		if strings.HasPrefix(v, "0x") {
+			bal, ok = new(big.Int).SetString(v[2:], 16)
+		} else {
+			bal, ok = new(big.Int).SetString(v, 10)
+		}
+
 		if !ok {
 			return fmt.Errorf("cannot parse %s for integer", v)
 		}

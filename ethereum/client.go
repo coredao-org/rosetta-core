@@ -712,6 +712,10 @@ func (t *Call) UnmarshalJSON(input []byte) error {
 
 // flattenTraces recursively flattens all traces.
 func flattenTraces(data *Call, flattened []*flatCall) []*flatCall {
+	if data == nil {
+		return flattened
+	}
+
 	results := append(flattened, data.flatten())
 	for _, child := range data.Calls {
 		// Ensure all children of a reverted call

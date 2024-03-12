@@ -51,7 +51,7 @@ const (
 var (
 	runCmd = &cobra.Command{
 		Use:   "run",
-		Short: "Run rosetta-ethereum",
+		Short: "Run rosetta-core",
 		RunE:  runRunCmd,
 	}
 )
@@ -127,7 +127,7 @@ func runRunCmd(cmd *cobra.Command, args []string) error {
 
 	err = g.Wait()
 	if SignalReceived {
-		return errors.New("rosetta-ethereum halted")
+		return errors.New("rosetta-core halted")
 	}
 
 	return err

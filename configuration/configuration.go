@@ -17,6 +17,7 @@ package configuration
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"strconv"
 
@@ -51,8 +52,14 @@ const (
 	// Goerli is the Ethereum Görli testnet.
 	Goerli string = "GOERLI"
 
-	// Testnet defaults to `Ropsten` for backwards compatibility.
-	Testnet string = "TESTNET"
+	// Devnet is the Corechain devnet.
+	Devnet string = "DEVNET"
+
+	// Core is the Corechain Mainnet
+	Core string = "CORE"
+
+	// Buffalo is the Corechain Testnet
+	Buffalo string = "BUFFALO"
 
 	// DataDirectory is the default location for all
 	// persistent data.
@@ -66,27 +73,36 @@ const (
 	// read to determine network.
 	NetworkEnv = "NETWORK"
 
+	// ChainIDEnv is the environment variable read
+	// to determine chainID
+	ChainIDEnv = "CHAINID"
+
 	// PortEnv is the environment variable
 	// read to determine the port for the Rosetta
 	// implementation.
 	PortEnv = "PORT"
 
 	// GethEnv is an optional environment variable
-	// used to connect rosetta-ethereum to an already
+	// used to connect rosetta-core to an already
 	// running geth node.
 	GethEnv = "GETH"
 
 	// DefaultGethURL is the default URL for
 	// a running geth node. This is used
 	// when GethEnv is not populated.
-	DefaultGethURL = "http://localhost:8545"
+	DefaultGethURL = "http://localhost:8579"
+
+	// BuffaloGethURL is the URL of the running
+	// test network `Buffalo` geth node. This is used
+	// when GethEnv is not populated and NetworkEnv is `BUFFALO`
+	BuffaloGethURL = "http://localhost:8575"
 
 	// SkipGethAdminEnv is an optional environment variable
 	// to skip geth `admin` calls which are typically not supported
 	// by hosted node services. When not set, defaults to false.
 	SkipGethAdminEnv = "SKIP_GETH_ADMIN"
 
-	// MiddlewareVersion is the version of rosetta-ethereum.
+	// MiddlewareVersion is the version of rosetta-core.
 	MiddlewareVersion = "0.0.4"
 )
 
@@ -122,6 +138,15 @@ func LoadConfiguration() (*Configuration, error) {
 		return nil, fmt.Errorf("%s is not a valid mode", modeValue)
 	}
 
+	// Corechain default Devnet chainID is 1112,
+	// If you want to designate your private chain as the Devnet,
+	// you should specify the network ID of the private chain through the environment variable CHAINID
+	chainIDValue := os.Getenv(ChainIDEnv)
+	chainID := new(big.Int)
+	chainID.SetString(chainIDValue, 10)
+
+	config.GethURL = DefaultGethURL
+
 	networkValue := os.Getenv(NetworkEnv)
 	switch networkValue {
 	case Mainnet:
@@ -156,21 +181,41 @@ func LoadConfiguration() (*Configuration, error) {
 		config.GenesisBlockIdentifier = ethereum.GoerliGenesisBlockIdentifier
 		config.Params = params.GoerliChainConfig
 		config.GethArguments = ethereum.GoerliGethArguments
-	case Testnet:
+	case Devnet:
 		config.Network = &types.NetworkIdentifier{
 			Blockchain: ethereum.Blockchain,
 			Network:    ethereum.DevNetwork,
 		}
-		config.GenesisBlockIdentifier = nil
-		config.Params = params.AllCliqueProtocolChanges
+		config.GenesisBlockIdentifier = ethereum.DevGenesisBlockIdentifier
+		config.Params = ethereum.DevChainConfig
+
+		if chainID.Cmp(big.NewInt(0)) == 1 {
+			config.Params.ChainID = chainID
+		}
+
 		config.GethArguments = ethereum.DevGethArguments
+	case Core:
+		config.Network = &types.NetworkIdentifier{
+			Blockchain: ethereum.Blockchain,
+			Network:    ethereum.CoreNetwork,
+		}
+		config.GenesisBlockIdentifier = ethereum.CoreGenesisBlockIdentifier
+		config.Params = ethereum.CoreChainConfig
+		config.GethArguments = ethereum.CoreGethArguments
+	case Buffalo:
+		config.Network = &types.NetworkIdentifier{
+			Blockchain: ethereum.Blockchain,
+			Network:    ethereum.BuffaloNetwork,
+		}
+		config.GenesisBlockIdentifier = ethereum.BuffaloGenesisBlockIdentifier
+		config.Params = ethereum.BuffaloChainConfig
+		config.GethArguments = ethereum.BuffaloGethArguments
+		config.GethURL = BuffaloGethURL
 	case "":
 		return nil, errors.New("NETWORK must be populated")
 	default:
 		return nil, fmt.Errorf("%s is not a valid network", networkValue)
 	}
-
-	config.GethURL = DefaultGethURL
 	envGethURL := os.Getenv(GethEnv)
 	if len(envGethURL) > 0 {
 		config.RemoteGeth = true

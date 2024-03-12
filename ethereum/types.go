@@ -17,8 +17,10 @@ package ethereum
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -28,7 +30,7 @@ const (
 	NodeVersion = "1.9.24"
 
 	// Blockchain is Ethereum.
-	Blockchain string = "Ethereum"
+	Blockchain string = "Corechain"
 
 	// MainnetNetwork is the value of the network
 	// in MainnetNetworkIdentifier.
@@ -50,9 +52,17 @@ const (
 	// in DevNetworkNetworkIdentifier.
 	DevNetwork string = "Dev"
 
+	// CoreNetwork is the value of the network
+	// in CoreNetworkNetworkIdentifier.
+	CoreNetwork string = "Core"
+
+	// BuffaloNetwork is the value of the network
+	// in BuffaloNetworkNetworkIdentifier.
+	BuffaloNetwork string = "Buffalo"
+
 	// Symbol is the symbol value
 	// used in Currency.
-	Symbol = "ETH"
+	Symbol = "CORE"
 
 	// Decimals is the decimals value
 	// used in Currency.
@@ -124,10 +134,29 @@ const (
 	TransferGasLimit = int64(21000) //nolint:gomnd
 
 	// MainnetGethArguments are the arguments to start a mainnet geth instance.
-	MainnetGethArguments = `--config=/app/ethereum/geth.toml --gcmode=archive --graphql`
+	MainnetGethArguments = `--config=/app/ethereum/geth.toml --cache=8000 --gcmode=archive --graphql`
 
-	// IncludeMempoolCoins does not apply to rosetta-ethereum as it is not UTXO-based.
+	// IncludeMempoolCoins does not apply to rosetta-core as it is not UTXO-based.
 	IncludeMempoolCoins = false
+)
+
+// CoreChain Genesis hashes and Network configurations to enforce below configs on.
+var (
+	DevGenesisHash     = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")
+	CoreGenesisHash    = common.HexToHash("0xf7fc87f11e61508a5828cd1508060ed1714c8d32a92744ae10acb43c953357ad")
+	BuffaloGenesisHash = common.HexToHash("0xd90508c51efd64e75363cdf51114d9f2a90a79e6cd0f78f3c3038b47695c034a")
+
+	CoreChainConfig = &params.ChainConfig{
+		ChainID: big.NewInt(1116),
+	}
+
+	BuffaloChainConfig = &params.ChainConfig{
+		ChainID: big.NewInt(1115),
+	}
+
+	DevChainConfig = &params.ChainConfig{
+		ChainID: big.NewInt(1112),
+	}
 )
 
 var (
@@ -141,7 +170,13 @@ var (
 	GoerliGethArguments = fmt.Sprintf("%s --goerli", MainnetGethArguments)
 
 	// DevGethArguments are the arguments to start a dev geth instance.
-	DevGethArguments = fmt.Sprintf("%s --dev", MainnetGethArguments)
+	DevGethArguments = MainnetGethArguments
+
+	// CoreGethArguments are the arguments to start a core geth instance
+	CoreGethArguments = MainnetGethArguments
+
+	// BuffaloGethArguments are the arguments to start a buffalo geth instance
+	BuffaloGethArguments = MainnetGethArguments
 
 	// MainnetGenesisBlockIdentifier is the *types.BlockIdentifier
 	// of the mainnet genesis block.
@@ -168,6 +203,27 @@ var (
 	// of the Goerli genesis block.
 	GoerliGenesisBlockIdentifier = &types.BlockIdentifier{
 		Hash:  params.GoerliGenesisHash.Hex(),
+		Index: GenesisBlockIndex,
+	}
+
+	// DevGenesisBlockIdentifier is the *types.BlockIdentifier
+	// of the Corechain Devnet genesis block
+	DevGenesisBlockIdentifier = &types.BlockIdentifier{
+		Hash:  DevGenesisHash.Hex(),
+		Index: GenesisBlockIndex,
+	}
+
+	// CoreGenesisBlockIdentifier is the *types.BlockIdentifier
+	// of the Corechain Mainnet genesis block
+	CoreGenesisBlockIdentifier = &types.BlockIdentifier{
+		Hash:  CoreGenesisHash.Hex(),
+		Index: GenesisBlockIndex,
+	}
+
+	// BuffaloGenesisBlockIdentifier is the *types.BlockIdentifier
+	// of the Corechain Testnet genesis block
+	BuffaloGenesisBlockIdentifier = &types.BlockIdentifier{
+		Hash:  BuffaloGenesisHash.Hex(),
 		Index: GenesisBlockIndex,
 	}
 
